@@ -16,50 +16,62 @@ BuildMind/
 ├── bun.lock
 ├── progress.md
 └── packages/
-    └── cli/
-        ├── package.json       # @buildmind/cli
-        ├── tsconfig.json
+    ├── cli/
+    │   ├── package.json       # @buildmind/cli
+    │   ├── tsconfig.json
+    │   └── src/
+    │       ├── index.tsx              # App entry — router + renderer
+    │       ├── themes.ts              # All theme definitions (32 themes)
+    │       ├── layouts/
+    │       │   ├── root-layout.tsx    # Provider tree wrapper
+    │       │   └── root-theme.tsx     # Applies theme background to root
+    │       ├── screens/
+    │       │   ├── home.tsx           # Landing screen with InputBar
+    │       │   ├── new-session.tsx    # New session with message preview
+    │       │   └── session.tsx        # Ongoing session shell (stub)
+    │       ├── components/
+    │       │   ├── header.tsx         # ASCII art "BuildMind" logo
+    │       │   ├── inputbar.tsx       # Textarea + CommandMenu + key logic
+    │       │   ├── statusbar.tsx      # Active model display
+    │       │   ├── session-shell.tsx  # Chat layout (scroll + input + footer)
+    │       │   ├── spinner.tsx        # Loading spinner
+    │       │   ├── dialog-search-list.tsx
+    │       │   ├── command-menu/
+    │       │   │   ├── index.tsx           # CommandMenu component
+    │       │   │   ├── commands.tsx        # All registered slash commands
+    │       │   │   ├── command-types.ts    # Command & CommandContext types
+    │       │   │   ├── filter-commands.ts  # Fuzzy filter logic
+    │       │   │   └── use-commandmenu.ts  # Hook: state, scroll, selection
+    │       │   ├── messages/
+    │       │   │   ├── index.tsx           # Re-exports
+    │       │   │   ├── user-message.tsx    # User bubble (left border)
+    │       │   │   ├── bot-message.tsx     # AI response with model label
+    │       │   │   └── error-message.tsx   # Error bubble (red border)
+    │       │   └── dialogs/
+    │       │       ├── index.tsx
+    │       │       └── theme-dialog.tsx    # Theme picker dialog content
+    │       └── providers/
+    │           ├── themes/index.tsx        # ThemeProvider + useTheme
+    │           ├── toast/
+    │           │   ├── index.tsx           # ToastProvider + useToast
+    │           │   └── toast-types.ts
+    │           ├── dialog/
+    │           │   ├── index.tsx           # DialogProvider + useDialog
+    │           │   └── dialog-types.ts
+    │           └── keyboard-layer/
+    │               └── index.tsx           # KeyboardLayerProvider + useKeyboardLayer
+    ├── server/
+    │   ├── package.json       # @buildmind/server
+    │   └── src/
+    │       ├── index.ts               # Hono app entry — routes + error handler
+    │       ├── routes/
+    │       │   ├── sessions.ts        # Session CRUD routes
+    │       │   └── chat.ts            # AI chat streaming routes (NEW)
+    │       └── lib/
+    │           └── models.ts          # Model resolution (Anthropic / OpenAI) (NEW)
+    └── shared/
         └── src/
-            ├── index.tsx              # App entry — router + renderer
-            ├── themes.ts              # All theme definitions (32 themes)
-            ├── layouts/
-            │   ├── root-layout.tsx    # Provider tree wrapper
-            │   └── root-theme.tsx     # Applies theme background to root
-            ├── screens/
-            │   ├── home.tsx           # Landing screen with InputBar
-            │   ├── new-session.tsx    # New session with message preview
-            │   └── session.tsx        # Ongoing session shell (stub)
-            ├── components/
-            │   ├── header.tsx         # ASCII art "BuildMind" logo
-            │   ├── inputbar.tsx       # Textarea + CommandMenu + key logic
-            │   ├── statusbar.tsx      # Active model display
-            │   ├── session-shell.tsx  # Chat layout (scroll + input + footer)
-            │   ├── spinner.tsx        # Loading spinner
-            │   ├── dialog-search-list.tsx
-            │   ├── command-menu/
-            │   │   ├── index.tsx           # CommandMenu component
-            │   │   ├── commands.tsx        # All registered slash commands
-            │   │   ├── command-types.ts    # Command & CommandContext types
-            │   │   ├── filter-commands.ts  # Fuzzy filter logic
-            │   │   └── use-commandmenu.ts  # Hook: state, scroll, selection
-            │   ├── messages/
-            │   │   ├── index.tsx           # Re-exports
-            │   │   ├── user-message.tsx    # User bubble (left border)
-            │   │   ├── bot-message.tsx     # AI response with model label
-            │   │   └── error-message.tsx   # Error bubble (red border)
-            │   └── dialogs/
-            │       ├── index.tsx
-            │       └── theme-dialog.tsx    # Theme picker dialog content
-            └── providers/
-                ├── themes/index.tsx        # ThemeProvider + useTheme
-                ├── toast/
-                │   ├── index.tsx           # ToastProvider + useToast
-                │   └── toast-types.ts
-                ├── dialog/
-                │   ├── index.tsx           # DialogProvider + useDialog
-                │   └── dialog-types.ts
-                └── keyboard-layer/
-                    └── index.tsx           # KeyboardLayerProvider + useKeyboardLayer
+            └── schemas.ts             # Zod schemas — ChatStreamEvent, MessagePart, etc.
 ```
 
 ---
@@ -109,6 +121,7 @@ ThemeProvider
 - Toast auto-dismisses after a configurable duration.
 - Styled with left+right borders colored by variant (`info`, `success`, `error`).
 - Positioned absolutely top-right, capped at 60 chars wide.
+- Context value is memoized with `useMemo` to avoid unnecessary re-renders.
 
 #### `DialogProvider` (`providers/dialog/`)
 - `open(config)` / `close()` — shows a centered overlay modal.
@@ -205,6 +218,59 @@ ThemeProvider
 
 ---
 
+### 8. Server (`packages/server/`)
+
+#### Entry (`src/index.ts`)
+- Hono app with global error handler (returns JSON for `HTTPException`, 500 for unknown errors).
+- Routes mounted:
+  - `/sessions` → session CRUD (`routes/sessions.ts`)
+  - `/chat/:sessionId` → submit new user message + stream AI response
+  - `/chat/:sessionId/resume` → resume last pending user message + stream AI response
+
+#### Chat Route (`src/routes/chat.ts`)
+- `POST /:sessionId` — validates body (`content`, `mode`, `model`), writes the user `Message` to DB, builds conversation history, then SSE-streams the AI response.
+- `POST /:sessionId/resume` — loads the session's last `USER` message and re-streams the AI response (useful for reconnects / interrupted streams).
+- Uses **Vercel AI SDK** (`ai` package) `streamText` under the hood; iterates `result.stream` for `text-delta` parts.
+- On completion: persists the `ASSISTANT` message to DB and emits a `done` SSE event.
+- On error: persists an `ERROR` message to DB and emits an `error` SSE event.
+- Abortable via `AbortController` wired to `stream.onAbort`.
+
+#### Model Resolution (`src/lib/models.ts`)
+- `isSupportedChatModel(id)` — type guard checking against `@buildmind/shared` supported model list.
+- `resolveChatModel(id)` → `ResolvedModel { model: LanguageModel, provider, modelId }`.
+- Delegates to `resolveAnthropicModel` / `resolveOpenAIModel` based on `SupportedChatModel.provider`.
+- Uses `assertUnsupportedProvider(never)` for exhaustive provider checking.
+
+#### Dependencies added to `packages/server/package.json`
+- `ai` ^7.0.15 — Vercel AI SDK core
+- `@ai-sdk/anthropic` ^4.0.8 — Anthropic provider
+- `@ai-sdk/openai` ^4.0.8 — OpenAI provider
+
+---
+
+### 9. Shared Schemas (`packages/shared/src/schemas.ts`)
+
+#### `ChatStreamEvent` (discriminated union)
+| `type` | Fields |
+|---|---|
+| `text-delta` | `text: string` |
+| `reasoning-delta` | `text: string` |
+| `tool-call` | `toolCallId`, `toolName`, `args` |
+| `tool-result` | `toolCallId`, `result` |
+| `done` | `messageId`, `durationMs` |
+| `error` | `message: string` |
+
+> **Note:** `error` event carries `message: string` (human-readable error text), not `messageId`.
+
+#### `MessagePart` (discriminated union)
+| `type` | Fields |
+|---|---|
+| `reasoning` | `text: string` |
+| `tool-call` | `id`, `name`, `args`, `result?` |
+| `text` | `text: string` |
+
+---
+
 ## Bugs Fixed
 
 ### Textarea Width Resizing
@@ -212,11 +278,15 @@ ThemeProvider
 - **Fix:** Added `width="100%"` to both the `<textarea>` element and the wrapping `<box border={["left"]}>` to anchor the full chain: outer box → border box → inner box → textarea.
 - **Result:** Input area stays fixed-width regardless of content.
 
+### ToastProvider Unnecessary Re-renders
+- **Problem:** `ToastContext.Provider` value was an inline object literal, causing all consumers to re-render on every provider render.
+- **Fix:** Wrapped the context value in `useMemo(() => ({ showToast }), [showToast])`.
+
 ---
 
 ## Pending / Next Steps
 
-- [ ] Wire up AI backend (Anthropic / Gemini SDK) in `<NewSession />` and `<Session />`.
+- [ ] Wire up AI backend in `<NewSession />` and `<Session />` (call `POST /chat/:sessionId` + consume SSE stream).
 - [ ] Stream AI responses into `<BotMessage>` in real time.
 - [ ] Implement `/agents` command — agent selection UI.
 - [ ] Implement `/models` command — model selection + update `<StatusBar />` dynamically.
@@ -227,3 +297,4 @@ ThemeProvider
 - [ ] Persist sessions to disk (`~/.buildmind/sessions/`).
 - [ ] Add plan mode UI (uses `colors.planMode` already defined in themes).
 - [ ] Add thinking/streaming indicator (uses `colors.thinking` already defined).
+- [ ] Add environment variable validation for `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` on server startup.
