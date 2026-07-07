@@ -1,4 +1,5 @@
-import { ThemeDialogContent } from "../dialogs"
+import { SUPPORTED_CHAT_MODELS } from "@buildmind/shared"
+import { AgentsDialogContent, ModelsDialogContent, SessionsDialogContent, ThemeDialogContent } from "../dialogs"
 import type { Command } from "./command-types"
 
 export const COMMANDS: Command[] = [
@@ -7,7 +8,7 @@ export const COMMANDS: Command[] = [
         description: "Starts a new conversation",
         value: "/new",
         action: (ctx) => {
-            ctx.toast.showToast({message: "Starting new converstion..."})
+            ctx.navigate("/")
         }
     },
     {
@@ -16,8 +17,8 @@ export const COMMANDS: Command[] = [
         value: "/agents",
         action: (ctx) => {
             ctx.dialog.open({
-                title: "Select Mode",
-                children: <text>Agent selection coming soon...</text>
+                title: "Select Agent",
+                children: <AgentsDialogContent currentMode={ctx.mode} onSelectMode={ctx.setMode}/>
             })
         }
     },
@@ -27,8 +28,8 @@ export const COMMANDS: Command[] = [
         value: "/models",
         action: (ctx) => {
             ctx.dialog.open({
-                title: "Select Mode",
-                children: <text>Model selection coming soon...</text>
+                title: "Select Model",
+                children: <ModelsDialogContent models={SUPPORTED_CHAT_MODELS.map((model) => model.id)} onSelectModel={ctx.setModel}/>
             })
         }
     },
@@ -37,7 +38,10 @@ export const COMMANDS: Command[] = [
         description: "Browse past sessions",
         value: "/sessions",
         action: (ctx) => {
-            ctx.toast.showToast({message: "loading sessions..."})
+            ctx.dialog.open({
+                title: "Sessions",
+                children: <SessionsDialogContent />
+            })
         }
     },
     {

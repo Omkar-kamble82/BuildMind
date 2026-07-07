@@ -3,13 +3,16 @@ import { StatusBar } from "./statusbar"
 import { CommandMenu } from "./command-menu"
 import { useRef, useCallback, useEffect } from "react"
 import type { TextareaRenderable } from "@opentui/core"
-import { useRenderer } from "@opentui/react"
+import { useRenderer, useKeyboard } from "@opentui/react"
 import type { Command } from "./command-menu/command-types"
 import { useCommandMenu } from "./command-menu/use-commandmenu"
 import { useToast } from "../providers/toast"
 import { useKeyboardLayer } from "../providers/keyboard-layer"
 import { useDialog } from "../providers/dialog"
 import { useTheme } from "../providers/themes"
+import { useNavigate } from "react-router"
+import { usePromptConfig } from "../providers/prompt-config"
+import { Mode } from "@buildmind/database/enums"
 
 type props = {
     onSubmit: (text: string) => void
@@ -25,6 +28,7 @@ export const INPUTBAR_KEY_BINDINGS: KeyBinding[] = [
 
 export function InputBar({ onSubmit, disabled = false }: props) {
 
+    const { mode, toggleMode, setMode, setModel } = usePromptConfig()
     const textareaRef = useRef<TextareaRenderable>(null)
     const onSubmitRef = useRef<() => void>(() => {})
     const renderer = useRenderer()
@@ -32,6 +36,7 @@ export function InputBar({ onSubmit, disabled = false }: props) {
     const dialog = useDialog()
     const {isTopLayer, setResponder} =  useKeyboardLayer()
     const { colors } = useTheme()
+    const navigate = useNavigate()
 
     const { showCommandMenu, commandQuery, selectedIndex, scrollRef, handleContentChange, resolveCommand, setSelectedIndex } = useCommandMenu()
 
@@ -62,11 +67,15 @@ export function InputBar({ onSubmit, disabled = false }: props) {
                 exit: () => renderer.destroy(),
                 toast,
                 dialog,
+                navigate,
+                mode,
+                setMode,
+                setModel,
             })
         } else {
             textarea.insertText(command.value + " ")
         }
-    }, [renderer, toast, dialog])
+    }, [renderer, toast, dialog, navigate, mode, setMode, setModel])
 
     const handleCommandExecute = useCallback((index: number) => {
         const command = resolveCommand(index)
@@ -93,6 +102,15 @@ export function InputBar({ onSubmit, disabled = false }: props) {
         handleSubmit()
     }
 
+    useKeyboard((key) => {
+        if (disabled) return
+        if (!isTopLayer("base")) return
+        if (key.name === "tab") {
+            key.preventDefault()
+            toggleMode()
+        }
+    })
+
     useEffect(() => {
         setResponder("base", () => {
             if (disabled) return false
@@ -108,7 +126,7 @@ export function InputBar({ onSubmit, disabled = false }: props) {
 
     return (
         <box width="100%" alignItems="center">
-            <box border={["left"]} borderColor={colors.primary} width="100%">
+            <box border={["left"]} borderColor={mode === Mode.BUILD ? colors.primary : colors.planMode} width="100%">
                 <box
                     position="relative"
                     justifyContent="center"

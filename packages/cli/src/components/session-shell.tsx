@@ -2,6 +2,7 @@ import { TextAttributes } from "@opentui/core"
 import type { ReactNode } from "react"
 import { InputBar } from "./inputbar"
 import { Spinner } from "./spinner"
+import { usePromptConfig } from "../providers/prompt-config"
 
 
 type Props = {
@@ -19,6 +20,9 @@ export function SessionShell({
     loading = false,
     interruptible = false
 }: Props) {
+
+    const { mode } = usePromptConfig()
+
     return (
         <box flexDirection="column" flexGrow={1} width="100%" height="100%" paddingY={1} paddingX={2} gap={1}>
             <scrollbox flexGrow={1} width="100%" stickyScroll stickyStart="bottom">
@@ -31,7 +35,7 @@ export function SessionShell({
                 <box flexDirection="row" alignItems="center" gap={2}>
                     {loading ? (
                         <>
-                            <Spinner />
+                            <Spinner mode={mode}/>
                             {interruptible ? <text>esc to interrupt</text> : null}
                         </>
                     ) : null}
