@@ -19,6 +19,7 @@
         "@buildmind/shared": "workspace:*",
         "@clerk/backend": "^3.11.1",
         "@hono/zod-validator": "^0.8.0",
+        "@polar-sh/sdk": "^0.48.1",
         "ai": "^7.0.15",
         "dotenv": "^17.4.2",
         "hono": "^4.12.27",

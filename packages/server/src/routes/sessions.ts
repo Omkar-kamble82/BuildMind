@@ -2,10 +2,11 @@ import { Hono } from "hono"
 // import { HTTPException } from "hono/http-exception"
 import { zValidator } from "@hono/zod-validator"
 import { z } from "zod"
-import { findSupportedChatModel } from "@buildmind/shared"
 import { db } from "@buildmind/database/client"
 import { Role, MessageStatus, Mode } from "@buildmind/database/enums"
 import type { AuthenticatedEnv } from "../middleware/requireauth"
+import { requireCreditsBalance } from "../middleware/requirecredits"
+import { isSupportedChatModel } from "../lib/models"
 
 
 const createSessionSchema = z.object({
@@ -16,7 +17,7 @@ const createSessionSchema = z.object({
         content: z.string(),
         mode: z.enum(Mode),
         model: z.string()
-            .refine((id) => !!findSupportedChatModel(id), "Unsupported model"),
+            .refine(isSupportedChatModel, "Unsupported model"),
     })
     .optional(),
 })
@@ -63,7 +64,7 @@ const app = new Hono<AuthenticatedEnv>()
 
         return c.json(session)
     })
-    .post("/", createSessionValidator, async (c) => {
+    .post("/", requireCreditsBalance, createSessionValidator, async (c) => {
         // await new Promise((r) => setTimeout(r, 5000))
         // throw new HTTPException(500, {message: "Mock session not created"})
         const { initialMessage, ...data } = c.req.valid("json")

@@ -3,6 +3,7 @@ import { AgentsDialogContent, ModelsDialogContent, SessionsDialogContent, ThemeD
 import type { Command } from "./command-types"
 import { performLogin } from "../../lib/oauth"
 import { clearAuth } from "../../lib/auth"
+import { openBillingPortal, openUpgradeCheckout } from "../../lib/upgrade"
 
 export const COMMANDS: Command[] = [
     {
@@ -84,20 +85,40 @@ export const COMMANDS: Command[] = [
         }
     },
     {
-        name: "upgrade",
-        description: "Buy more credits",
-        value: "/upgrade",
-        action: (ctx) => {
-            ctx.toast.showToast({message: "Opening credits checkout..."})
-        }
-    },
-    {
         name: "usage",
         description: "Open billing and usage information in browser",
         value: "/usage",
-        action: (ctx) => {
-            ctx.toast.showToast({message: "Opening billing portal..."})
-        }
+        action: async (ctx) => {
+        ctx.toast.showToast({ message: "Opening billing portal..." })
+        try {
+            await openBillingPortal()
+                ctx.toast.showToast({
+                    variant: "success",
+                    message: "Billing portal opened in browser",
+                })
+            } catch (error) {
+                const message = error instanceof Error ? error.message : "Failed to open billing portal"
+                ctx.toast.showToast({ variant: "error", message })
+            }
+        },
+    },
+    {
+        name: "upgrade",
+        description: "Buy more credits",
+        value: "/upgrade",
+        action: async (ctx) => {
+        ctx.toast.showToast({ message: "Opening credits checkout..." })
+            try {
+                await openUpgradeCheckout()
+                ctx.toast.showToast({
+                variant: "success",
+                message: "Checkout opened in browser",
+                })
+            } catch (error) {
+                const message = error instanceof Error ? error.message : "Failed to open checkout"
+                ctx.toast.showToast({ variant: "error", message })
+            }
+        },
     },
     {
         name: "exit",
