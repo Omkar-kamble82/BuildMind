@@ -15,6 +15,7 @@ import {
  import { buildSystemPrompt } from "../system-prompt"
 import { isSupportedChatModel, resolveChatModel } from "../lib/models"
 import type { Prisma } from "@buildmind/database"
+import type { AuthenticatedEnv } from "../middleware/requireauth"
 
 const submitSchema = z.object({
   content: z.string(),
@@ -251,12 +252,13 @@ async function streamAIResponse(
     }
 }
 
-const app = new Hono()
+const app = new Hono<AuthenticatedEnv>()
     .post("/:sessionId/resume", async (c) => {
         const sessionId = c.req.param("sessionId")
+        const userId = c.get("userId")
 
         const session = await db.session.findUnique({
-            where: { id: sessionId },
+            where: { id: sessionId, userId },
             include: { messages: { orderBy: { createdAt: "asc" } } },
         })
 
@@ -319,9 +321,10 @@ activeResumeSessionIds.delete(sessionId)
     })
     .post("/:sessionId", submitValidator, async (c) => {
         const sessionId = c.req.param("sessionId")
+        const userId = c.get("userId")
 
         const session = await db.session.findUnique({
-            where: { id: sessionId },
+            where: { id: sessionId, userId },
             include: { messages: { orderBy: { createdAt: "asc" } } },
         })
 

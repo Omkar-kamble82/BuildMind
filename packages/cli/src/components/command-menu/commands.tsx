@@ -1,6 +1,8 @@
 import { SUPPORTED_CHAT_MODELS } from "@buildmind/shared"
 import { AgentsDialogContent, ModelsDialogContent, SessionsDialogContent, ThemeDialogContent } from "../dialogs"
 import type { Command } from "./command-types"
+import { performLogin } from "../../lib/oauth"
+import { clearAuth } from "../../lib/auth"
 
 export const COMMANDS: Command[] = [
     {
@@ -59,16 +61,26 @@ export const COMMANDS: Command[] = [
         name: "login",
         description: "Log in to the account",
         value: "/login",
-        action: (ctx) => {
+        action: async (ctx) => {
             ctx.toast.showToast({message: "Opening browser to sign in..."})
+            try {
+                await performLogin()
+                ctx.toast.showToast({ variant: "success", message: "Signed in" })
+            } catch (error) {
+                const message = error instanceof Error
+                    ? error.message
+                    : "Sign in Failed"
+                ctx.toast.showToast({ variant: "error", message })
+            }
         }
     },
     {
         name: "logout",
         description: "Log out of the account",
         value: "/logout",
-        action: (ctx) => {
-            ctx.toast.showToast({variant: "success", message: "Signed out"})
+        action: async (ctx) => {
+            clearAuth()
+            ctx.toast.showToast({ variant: "success", message: "Signed out successfully"})
         }
     },
     {

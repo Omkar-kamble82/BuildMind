@@ -5,6 +5,7 @@ import { z } from "zod"
 import { findSupportedChatModel } from "@buildmind/shared"
 import { db } from "@buildmind/database/client"
 import { Role, MessageStatus, Mode } from "@buildmind/database/enums"
+import type { AuthenticatedEnv } from "../middleware/requireauth"
 
 
 const createSessionSchema = z.object({
@@ -27,9 +28,11 @@ const createSessionValidator = zValidator(
   }
 })
 
-const app = new Hono()
+const app = new Hono<AuthenticatedEnv>()
     .get("/", async (c) => {
+        const userId = c.get("userId")
         const sessions = await db.session.findMany({
+            where: { userId },
             orderBy: { createdAt: "desc" },
             select: {
                 id: true,
@@ -43,11 +46,12 @@ const app = new Hono()
     .get("/:id", async (c) => {
         // await new Promise((r) => setTimeout(r, 5000))
         // throw new HTTPException(500, {message: "Mock error failed"})
+        const userId = c.get("userId")
 
         const id = c.req.param("id")
     
         const session = await db.session.findUnique({
-            where: { id },
+            where: { id, userId },
             include: {
                 messages: { orderBy: { createdAt: "asc" } },
             },
@@ -63,11 +67,12 @@ const app = new Hono()
         // await new Promise((r) => setTimeout(r, 5000))
         // throw new HTTPException(500, {message: "Mock session not created"})
         const { initialMessage, ...data } = c.req.valid("json")
+        const userId = c.get("userId")
 
         const session = await db.session.create({
             data: {
                 ...data,
-                userId: "mock-user",
+                userId,
                 ...(initialMessage && {
                     messages: {
                         create: {
