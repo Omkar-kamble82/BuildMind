@@ -1,10 +1,10 @@
-import { Mode } from "@buildmind/database"
+import { Mode, type ModeType } from "@buildmind/shared"
 import { useTheme } from "../../providers/themes"
 
 
 type Props = {
     message: string
-    mode: Mode
+    mode: ModeType
 }
 
 export function UserMessage({message, mode}: Props) {

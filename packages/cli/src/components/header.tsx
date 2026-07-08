@@ -1,4 +1,4 @@
-import { Mode } from "@buildmind/database"
+import { Mode } from "@buildmind/shared"
 import { usePromptConfig } from "../providers/prompt-config"
 import { useTheme } from "../providers/themes"
 

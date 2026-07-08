@@ -1,7 +1,7 @@
 import { TextAttributes } from "@opentui/core"
 import { useTheme } from "../providers/themes"
 import { usePromptConfig } from "../providers/prompt-config"
-import { Mode } from "@buildmind/database/enums"
+import { Mode } from "@buildmind/shared"
 
 export function StatusBar() {
     const { colors } = useTheme()

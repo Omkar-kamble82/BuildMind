@@ -1,9 +1,9 @@
 import "opentui-spinner/react"
-import { Mode } from "@buildmind/database/enums"
+import { Mode, type ModeType } from "@buildmind/shared"
 import { useTheme } from "../providers/themes"
 
 type Props = {
-  mode?: Mode
+  mode?: ModeType
 };
 
 export function Spinner({ mode = Mode.BUILD }: Props) {

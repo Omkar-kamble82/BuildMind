@@ -1,8 +1,8 @@
-import { useCallback } from "react";
-import { useDialog } from "../../providers/dialog";
-import { DialogSearchList } from "../dialog-search-list";
-import { Mode } from "@buildmind/database/enums";
-import type { SupportedChatModelId } from "@buildmind/shared";
+import { useCallback } from "react"
+import { useDialog } from "../../providers/dialog"
+import { DialogSearchList } from "../dialog-search-list"
+import { Mode, type ModeType } from "@buildmind/shared"
+import type { SupportedChatModelId } from "@buildmind/shared"
 
 type ModelsDialogContentProps = {
   models: SupportedChatModelId[];
